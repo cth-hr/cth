@@ -3055,11 +3055,11 @@ input[type="search"]::-webkit-search-results-decoration {
         height: auto;
     }
 }
-@media (max-width: 620px) {
+/* @media (max-width: 620px) {
     .hero-banner h1 br {
         display: none;
     }
-}
+} */
 .hero-banner .hash-tags-wrapper {
     position: relative;
     text-align: center;

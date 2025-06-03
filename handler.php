@@ -19,8 +19,8 @@ $email_body .= "Email: $email\n";
 $email_body .= "Сообщение: " . ($message ? $message : 'Отсутствует') . "\n";
 
 // Кому отправляем — укажи свой email
-$to = "info@cth.eventslab.net";
-$noreply = "no-reply@cth.eventslab.net";
+$to = "info@cth-hr.com";
+$noreply = "no-reply@cth-hr.com";
 
 // Заголовки письма
 $headers = "From: $noreply\r\n";
