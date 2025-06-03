@@ -672,11 +672,7 @@ var MyScroll = "";
 })(window, document, jQuery);
 
 const forms = document.querySelectorAll('form');
-const resultDiv = document.querySelector('.message');
 const htmlLang = document.querySelector('html').getAttribute('lang');
-let postUrl = '';
-
-
 
 forms.forEach(form => {
 	form.addEventListener('submit', async (e) => {
@@ -687,17 +683,6 @@ forms.forEach(form => {
 		const buttonSubmit = form.querySelector('button[type="submit"]');
 		const buttonSubmitText = buttonSubmit.querySelector('.button-text');
 		const buttonText = buttonSubmitText.textContent;
-
-		switch (htmlLang) {
-			case 'en':
-			case 'ru':
-				postUrl = '../handler.php';
-
-				break;
-			default:
-				postUrl = 'handler.php';
-				break;
-		}
 
 		buttonSubmit.setAttribute('disabled', 'disabled');
 
@@ -713,65 +698,65 @@ forms.forEach(form => {
 				break;
 		}
 
+		// Получаем значения из формы
+		const name = formData.get('name') || 'Не указано';
+		const email = formData.get('email') || 'Без email';
+		const message = formData.get('message') || '';
+
 		try {
-			const response = await fetch(postUrl, {
-				method: 'POST',
-				body: formData
+			await Email.send({
+				Host: "smtp.mailgun.org",
+				Port: 587,
+				Username: "admin@cth-hr.com",
+				Password: "Q1234567a@", // ⚠️ НЕ ИСПОЛЬЗУЙ В ПРОДАКШЕНЕ
+				To: "cth.hragency@gmail.com",
+				From: email,
+				Subject: `Новое сообщение с сайта от ${name}`,
+				Body: `
+					Имя: ${name}<br>
+					Email: ${email}<br>
+					Сообщение:<br>${message}
+				`
 			});
 
-			const data = await response.json();
-
-			if (data.success) {
-
-
-				setTimeout(() => {
-
-					switch (htmlLang) {
-						case 'en':
-							resultDiv.textContent = 'Data submitted successfully!';
-							break;
-						case 'ru':
-							resultDiv.textContent = 'Данные успешно отправлены!';
-							break;
-						default:
-							resultDiv.textContent = 'Подаци су успешно послати!';
-							break;
-					}
-					form.reset();
-					buttonSubmit.removeAttribute('disabled');
-					buttonSubmitText.textContent = buttonText;
-
-					setTimeout(() => {
-						resultDiv.textContent = '';
-					}, 5000);
-				}, 2000)
-			} else {
+			setTimeout(() => {
 				switch (htmlLang) {
 					case 'en':
-						resultDiv.textContent = 'Error: ' + (data.error || 'Unknown error');
-
+						resultDiv.textContent = 'Message sent successfully!';
 						break;
 					case 'ru':
-						resultDiv.textContent = 'Ошибка: ' + (data.error || 'Неизвестная ошибка');
+						resultDiv.textContent = 'Сообщение успешно отправлено!';
 						break;
 					default:
-						resultDiv.textContent = 'Грешка: ' + (data.error || 'Непозната грешка');
+						resultDiv.textContent = 'Порука је успешно послата!';
 						break;
 				}
 
-			}
-		} catch (err) {
+				form.reset();
+				buttonSubmit.removeAttribute('disabled');
+				buttonSubmitText.textContent = buttonText;
+
+				setTimeout(() => {
+					resultDiv.textContent = '';
+				}, 5000);
+			}, 1000);
+
+		} catch (error) {
 			switch (htmlLang) {
 				case 'en':
-					resultDiv.textContent = 'Network or server error.';
+					resultDiv.textContent = 'Error sending message.';
 					break;
 				case 'ru':
-					resultDiv.textContent = 'Ошибка сети или сервера.';
+					resultDiv.textContent = 'Ошибка при отправке сообщения.';
 					break;
 				default:
-					resultDiv.textContent = 'Грешка у мрежи или на серверу.';
+					resultDiv.textContent = 'Грешка при слању поруке.';
 					break;
 			}
+
+			buttonSubmit.removeAttribute('disabled');
+			buttonSubmitText.textContent = buttonText;
 		}
 	});
 });
+
