@@ -699,92 +699,62 @@ const messages = {
 		en: 'Sending error: ',
 		ru: 'Ошибка при отправке: ',
 		sr: 'Грешка при слању: '
-	},
-	checkboxRequired: {
-		en: 'You must agree to the privacy policy.',
-		ru: 'Вы должны согласиться на обработку персональных данных.',
-		sr: 'Морате прихватити политику приватности.'
 	}
 };
 
-form.addEventListener('submit', async (e) => {
-	e.preventDefault();
+forms.forEach(form => {
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
 
-	const resultDiv = form.querySelector('.message');
-	const submitButton = form.querySelector('button[type="submit"]');
-	const buttonTextEl = submitButton.querySelector('.button-text');
-	const originalText = buttonTextEl.textContent;
+		const resultDiv = form.querySelector('.message');
+		const submitButton = form.querySelector('button[type="submit"]');
+		const buttonTextEl = submitButton.querySelector('.button-text');
+		const originalText = buttonTextEl.textContent;
 
-	// Проверяем чекбокс (обязательное согласие)
-	const consentCheckbox = form.querySelector('#remember');
-	if (!consentCheckbox.checked) {
-		resultDiv.textContent = messages.checkboxRequired[htmlLang] || messages.checkboxRequired.sr;
-		return;
-	}
+		// Получаем данные формы
+		const formData = new FormData(form);
+		const name = formData.get('name') || 'No name';
+		const email = formData.get('email') || 'no-reply@cth-hr.com';
+		const message = formData.get('message') || '...';
+		const country = formData.get('counrty') || 'No country';
+		const tel = formData.get('tel') || 'No phone';
 
-	// Получаем значения всех полей
-	const formData = new FormData(form);
-	const name = formData.get('name') || 'No name';
-	const country = formData.get('counrty') || 'No country';
-	const tel = formData.get('tel') || 'No phone';
-	const email = formData.get('email') || 'no-reply@cth-hr.com';
-	const message = formData.get('message') || '';
+		// UI: disable and change button
+		submitButton.disabled = true;
+		buttonTextEl.textContent = messages.sending[htmlLang] || messages.sending.sr;
 
-	// UI: блокируем кнопку и меняем текст
-	submitButton.disabled = true;
-	buttonTextEl.textContent = messages.sending[htmlLang] || messages.sending.sr;
-	resultDiv.textContent = '';
+		// Собираем Mailgun payload
+		const payload = new URLSearchParams();
+		payload.append('from', `${name} <${email}>`);
+		payload.append('to', MAILGUN_TO);
+		payload.append('subject', `Новое сообщение с сайта от ${name}`);
+		payload.append('text', `Имя: ${name}\nEmail: ${email}\nТелефон: ${tel}\nСтрана: ${country}\nСообщение: ${message}`);
+		payload.append('html', `<p><strong>Имя:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>nТелефон:</strong> ${tel}</p><p><strong>nСтрана:</strong> ${country}</p><p><strong>Сообщение:</strong><br>${message}</p>`);
 
-	// Собираем тело письма
-	const textBody = `
-		Имя: ${name}
-		Страна: ${country}
-		Телефон: ${tel}
-		Email: ${email}
-		Сообщение: ${message}
-	`;
+		try {
+			const response = await fetch(MAILGUN_URL, {
+				method: 'POST',
+				headers: {
+					'Authorization': 'Basic ' + btoa(`api:${MAILGUN_API_KEY}`),
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: payload.toString()
+			});
 
-	const htmlBody = `
-			<p><strong>Имя:</strong> ${name}</p>
-			<p><strong>Страна:</strong> ${country}</p>
-			<p><strong>Телефон:</strong> ${tel}</p>
-			<p><strong>Email:</strong> ${email}</p>
-			<p><strong>Сообщение:</strong><br>${message.replace(/\n/g, '<br>')}</p>
-  	`;
-
-	// Формируем данные для Mailgun
-	const payload = new URLSearchParams();
-	payload.append('from', `${name} <${email}>`);
-	payload.append('to', MAILGUN_TO);
-	payload.append('subject', `Новое сообщение с сайта от ${name}`);
-	payload.append('text', textBody);
-	payload.append('html', htmlBody);
-
-	try {
-		const response = await fetch(MAILGUN_URL, {
-			method: 'POST',
-			headers: {
-				'Authorization': 'Basic ' + btoa(`api:${MAILGUN_API_KEY}`),
-				'Content-Type': 'application/x-www-form-urlencoded'
-			},
-			body: payload.toString()
-		});
-
-		if (response.ok) {
-			resultDiv.textContent = messages.success[htmlLang] || messages.success.sr;
-			form.reset();
-		} else {
-			const errorText = await response.text();
-			resultDiv.textContent = (messages.errorPrefix[htmlLang] || messages.errorPrefix.sr) + errorText;
+			if (response.ok) {
+				resultDiv.textContent = messages.success[htmlLang] || messages.success.sr;
+				form.reset();
+			} else {
+				const error = await response.text();
+				resultDiv.textContent = (messages.errorPrefix[htmlLang] || messages.errorPrefix.sr) + error;
+			}
+		} catch (err) {
+			resultDiv.textContent = messages.networkError[htmlLang] || messages.networkError.sr;
+		} finally {
+			submitButton.disabled = false;
+			buttonTextEl.textContent = originalText;
+			setTimeout(() => { resultDiv.textContent = ''; }, 5000);
 		}
-	} catch (err) {
-		resultDiv.textContent = messages.networkError[htmlLang] || messages.networkError.sr;
-	} finally {
-		submitButton.disabled = false;
-		buttonTextEl.textContent = originalText;
-		setTimeout(() => {
-			resultDiv.textContent = '';
-		}, 7000);
-	}
+	});
 });
 
