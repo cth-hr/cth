@@ -674,88 +674,84 @@ var MyScroll = "";
 const forms = document.querySelectorAll('form');
 const htmlLang = document.querySelector('html').getAttribute('lang');
 
+const MAILGUN_API_KEY = '3116b175eacc6929fe2e7b99553f7adb-08c79601-3a54df5c';
+const MAILGUN_DOMAIN = 'cth-hr.com';
+const MAILGUN_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
+const MAILGUN_TO = 'cth.hragency@gmail.com';
+
+const messages = {
+	sending: {
+		en: 'Sending...',
+		ru: 'Отправка...',
+		sr: 'Слање...'
+	},
+	success: {
+		en: 'Message sent successfully!',
+		ru: 'Сообщение успешно отправлено!',
+		sr: 'Порука је успешно послата!'
+	},
+	networkError: {
+		en: 'Network or server error.',
+		ru: 'Ошибка сети или сервера.',
+		sr: 'Грешка у мрежи или на серверу.'
+	},
+	errorPrefix: {
+		en: 'Sending error: ',
+		ru: 'Ошибка при отправке: ',
+		sr: 'Грешка при слању: '
+	}
+};
+
 forms.forEach(form => {
 	form.addEventListener('submit', async (e) => {
 		e.preventDefault();
 
-		const formData = new FormData(form);
 		const resultDiv = form.querySelector('.message');
-		const buttonSubmit = form.querySelector('button[type="submit"]');
-		const buttonSubmitText = buttonSubmit.querySelector('.button-text');
-		const buttonText = buttonSubmitText.textContent;
+		const submitButton = form.querySelector('button[type="submit"]');
+		const buttonTextEl = submitButton.querySelector('.button-text');
+		const originalText = buttonTextEl.textContent;
 
-		buttonSubmit.setAttribute('disabled', 'disabled');
-
-		switch (htmlLang) {
-			case 'en':
-				buttonSubmitText.textContent = 'Sending...';
-				break;
-			case 'ru':
-				buttonSubmitText.textContent = 'Отправка...';
-				break;
-			default:
-				buttonSubmitText.textContent = 'Слање...';
-				break;
-		}
-
-		// Получаем значения из формы
-		const name = formData.get('name') || 'Не указано';
-		const email = formData.get('email') || 'Без email';
+		// Получаем данные формы
+		const formData = new FormData(form);
+		const name = formData.get('name') || 'No name';
+		const email = formData.get('email') || 'no-reply@cth-hr.com';
 		const message = formData.get('message') || '';
 
+		// UI: disable and change button
+		submitButton.disabled = true;
+		buttonTextEl.textContent = messages.sending[htmlLang] || messages.sending.sr;
+
+		// Собираем Mailgun payload
+		const payload = new URLSearchParams();
+		payload.append('from', `${name} <${email}>`);
+		payload.append('to', MAILGUN_TO);
+		payload.append('subject', `Новое сообщение с сайта от ${name}`);
+		payload.append('text', `Имя: ${name}\nEmail: ${email}\nСообщение:\n${message}`);
+		payload.append('html', `<p><strong>Имя:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Сообщение:</strong><br>${message}</p>`);
+
 		try {
-			await Email.send({
-				Host: "smtp.mailgun.org",
-				Port: 587,
-				Username: "admin@cth-hr.com",
-				Password: "Q1234567a@", // ⚠️ НЕ ИСПОЛЬЗУЙ В ПРОДАКШЕНЕ
-				To: "cth.hragency@gmail.com",
-				From: email,
-				Subject: `Новое сообщение с сайта от ${name}`,
-				Body: `
-					Имя: ${name}<br>
-					Email: ${email}<br>
-					Сообщение:<br>${message}
-				`
+			const response = await fetch(MAILGUN_URL, {
+				method: 'POST',
+				headers: {
+					'Authorization': 'Basic ' + btoa(`api:${MAILGUN_API_KEY}`),
+					'Content-Type': 'application/x-www-form-urlencoded'
+				},
+				body: payload.toString()
 			});
 
-			setTimeout(() => {
-				switch (htmlLang) {
-					case 'en':
-						resultDiv.textContent = 'Message sent successfully!';
-						break;
-					case 'ru':
-						resultDiv.textContent = 'Сообщение успешно отправлено!';
-						break;
-					default:
-						resultDiv.textContent = 'Порука је успешно послата!';
-						break;
-				}
-
+			if (response.ok) {
+				resultDiv.textContent = messages.success[htmlLang] || messages.success.sr;
 				form.reset();
-				buttonSubmit.removeAttribute('disabled');
-				buttonSubmitText.textContent = buttonText;
-
-				setTimeout(() => {
-					resultDiv.textContent = '';
-				}, 5000);
-			}, 1000);
-
-		} catch (error) {
-			switch (htmlLang) {
-				case 'en':
-					resultDiv.textContent = 'Error sending message.';
-					break;
-				case 'ru':
-					resultDiv.textContent = 'Ошибка при отправке сообщения.';
-					break;
-				default:
-					resultDiv.textContent = 'Грешка при слању поруке.';
-					break;
+			} else {
+				const error = await response.text();
+				resultDiv.textContent = (messages.errorPrefix[htmlLang] || messages.errorPrefix.sr) + error;
 			}
-
-			buttonSubmit.removeAttribute('disabled');
-			buttonSubmitText.textContent = buttonText;
+		} catch (err) {
+			resultDiv.textContent = messages.networkError[htmlLang] || messages.networkError.sr;
+		} finally {
+			submitButton.disabled = false;
+			buttonTextEl.textContent = originalText;
+			setTimeout(() => { resultDiv.textContent = ''; }, 5000);
 		}
 	});
 });
