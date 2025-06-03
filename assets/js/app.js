@@ -677,7 +677,7 @@ const htmlLang = document.querySelector('html').getAttribute('lang');
 const MAILGUN_API_KEY = '3116b175eacc6929fe2e7b99553f7adb-08c79601-3a54df5c';
 const MAILGUN_DOMAIN = 'cth-hr.com';
 const MAILGUN_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
-const MAILGUN_TO = 'cth.hragency@gmail.com';
+const MAILGUN_TO = 'ceo.cth@gmail.com';
 
 const messages = {
 	sending: {
@@ -725,11 +725,11 @@ forms.forEach(form => {
 
 		// Собираем Mailgun payload
 		const payload = new URLSearchParams();
-		payload.append('from', `${name} <${email}>`);
+		payload.append('from', `no-reply@cth-hr.com`);
 		payload.append('to', MAILGUN_TO);
 		payload.append('subject', `Новое сообщение с сайта от ${name}`);
 		payload.append('text', `Имя: ${name}\nEmail: ${email}\nТелефон: ${tel}\nСтрана: ${country}\nСообщение: ${message}`);
-		payload.append('html', `<p><strong>Имя:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>nТелефон:</strong> ${tel}</p><p><strong>nСтрана:</strong> ${country}</p><p><strong>Сообщение:</strong><br>${message}</p>`);
+		payload.append('html', `<p><strong>Имя:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Телефон:</strong> ${tel}</p><p><strong>Страна:</strong> ${country}</p><p><strong>Сообщение:</strong> ${message}</p>`);
 
 		try {
 			const response = await fetch(MAILGUN_URL, {
