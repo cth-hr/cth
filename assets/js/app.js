@@ -674,7 +674,7 @@ var MyScroll = "";
 const forms = document.querySelectorAll('form');
 const htmlLang = document.querySelector('html').getAttribute('lang');
 
-const MAILGUN_API_KEY = '3116b175eacc6929fe2e7b99553f7adb-08c79601-3a54df5c';
+const MAILGUN_API_KEY = '5361f34c054f55723217ff5ced7aa780-08c79601-0b6ee5e0';
 const MAILGUN_DOMAIN = 'cth-hr.com';
 const MAILGUN_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
 const MAILGUN_TO = 'cth.hragency@gmail.com';
@@ -699,60 +699,92 @@ const messages = {
 		en: 'Sending error: ',
 		ru: 'Ошибка при отправке: ',
 		sr: 'Грешка при слању: '
+	},
+	checkboxRequired: {
+		en: 'You must agree to the privacy policy.',
+		ru: 'Вы должны согласиться на обработку персональных данных.',
+		sr: 'Морате прихватити политику приватности.'
 	}
 };
 
-forms.forEach(form => {
-	form.addEventListener('submit', async (e) => {
-		e.preventDefault();
+form.addEventListener('submit', async (e) => {
+	e.preventDefault();
 
-		const resultDiv = form.querySelector('.message');
-		const submitButton = form.querySelector('button[type="submit"]');
-		const buttonTextEl = submitButton.querySelector('.button-text');
-		const originalText = buttonTextEl.textContent;
+	const resultDiv = form.querySelector('.message');
+	const submitButton = form.querySelector('button[type="submit"]');
+	const buttonTextEl = submitButton.querySelector('.button-text');
+	const originalText = buttonTextEl.textContent;
 
-		// Получаем данные формы
-		const formData = new FormData(form);
-		const name = formData.get('name') || 'No name';
-		const email = formData.get('email') || 'no-reply@cth-hr.com';
-		const message = formData.get('message') || '';
+	// Проверяем чекбокс (обязательное согласие)
+	const consentCheckbox = form.querySelector('#remember');
+	if (!consentCheckbox.checked) {
+		resultDiv.textContent = messages.checkboxRequired[htmlLang] || messages.checkboxRequired.sr;
+		return;
+	}
 
-		// UI: disable and change button
-		submitButton.disabled = true;
-		buttonTextEl.textContent = messages.sending[htmlLang] || messages.sending.sr;
+	// Получаем значения всех полей
+	const formData = new FormData(form);
+	const name = formData.get('name') || 'No name';
+	const country = formData.get('counrty') || 'No country';
+	const tel = formData.get('tel') || 'No phone';
+	const email = formData.get('email') || 'no-reply@cth-hr.com';
+	const message = formData.get('message') || '';
 
-		// Собираем Mailgun payload
-		const payload = new URLSearchParams();
-		payload.append('from', `${name} <${email}>`);
-		payload.append('to', MAILGUN_TO);
-		payload.append('subject', `Новое сообщение с сайта от ${name}`);
-		payload.append('text', `Имя: ${name}\nEmail: ${email}\nСообщение:\n${message}`);
-		payload.append('html', `<p><strong>Имя:</strong> ${name}</p><p><strong>Email:</strong> ${email}</p><p><strong>Сообщение:</strong><br>${message}</p>`);
+	// UI: блокируем кнопку и меняем текст
+	submitButton.disabled = true;
+	buttonTextEl.textContent = messages.sending[htmlLang] || messages.sending.sr;
+	resultDiv.textContent = '';
 
-		try {
-			const response = await fetch(MAILGUN_URL, {
-				method: 'POST',
-				headers: {
-					'Authorization': 'Basic ' + btoa(`api:${MAILGUN_API_KEY}`),
-					'Content-Type': 'application/x-www-form-urlencoded'
-				},
-				body: payload.toString()
-			});
+	// Собираем тело письма
+	const textBody = `
+		Имя: ${name}
+		Страна: ${country}
+		Телефон: ${tel}
+		Email: ${email}
+		Сообщение: ${message}
+	`;
 
-			if (response.ok) {
-				resultDiv.textContent = messages.success[htmlLang] || messages.success.sr;
-				form.reset();
-			} else {
-				const error = await response.text();
-				resultDiv.textContent = (messages.errorPrefix[htmlLang] || messages.errorPrefix.sr) + error;
-			}
-		} catch (err) {
-			resultDiv.textContent = messages.networkError[htmlLang] || messages.networkError.sr;
-		} finally {
-			submitButton.disabled = false;
-			buttonTextEl.textContent = originalText;
-			setTimeout(() => { resultDiv.textContent = ''; }, 5000);
+	const htmlBody = `
+			<p><strong>Имя:</strong> ${name}</p>
+			<p><strong>Страна:</strong> ${country}</p>
+			<p><strong>Телефон:</strong> ${tel}</p>
+			<p><strong>Email:</strong> ${email}</p>
+			<p><strong>Сообщение:</strong><br>${message.replace(/\n/g, '<br>')}</p>
+  	`;
+
+	// Формируем данные для Mailgun
+	const payload = new URLSearchParams();
+	payload.append('from', `${name} <${email}>`);
+	payload.append('to', MAILGUN_TO);
+	payload.append('subject', `Новое сообщение с сайта от ${name}`);
+	payload.append('text', textBody);
+	payload.append('html', htmlBody);
+
+	try {
+		const response = await fetch(MAILGUN_URL, {
+			method: 'POST',
+			headers: {
+				'Authorization': 'Basic ' + btoa(`api:${MAILGUN_API_KEY}`),
+				'Content-Type': 'application/x-www-form-urlencoded'
+			},
+			body: payload.toString()
+		});
+
+		if (response.ok) {
+			resultDiv.textContent = messages.success[htmlLang] || messages.success.sr;
+			form.reset();
+		} else {
+			const errorText = await response.text();
+			resultDiv.textContent = (messages.errorPrefix[htmlLang] || messages.errorPrefix.sr) + errorText;
 		}
-	});
+	} catch (err) {
+		resultDiv.textContent = messages.networkError[htmlLang] || messages.networkError.sr;
+	} finally {
+		submitButton.disabled = false;
+		buttonTextEl.textContent = originalText;
+		setTimeout(() => {
+			resultDiv.textContent = '';
+		}, 7000);
+	}
 });
 
