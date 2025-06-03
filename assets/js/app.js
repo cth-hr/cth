@@ -674,7 +674,7 @@ var MyScroll = "";
 const forms = document.querySelectorAll('form');
 const htmlLang = document.querySelector('html').getAttribute('lang');
 
-const MAILGUN_API_KEY = '5361f34c054f55723217ff5ced7aa780-08c79601-0b6ee5e0';
+const MAILGUN_API_KEY = '3116b175eacc6929fe2e7b99553f7adb-08c79601-3a54df5c';
 const MAILGUN_DOMAIN = 'cth-hr.com';
 const MAILGUN_URL = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
 const MAILGUN_TO = 'cth.hragency@gmail.com';
